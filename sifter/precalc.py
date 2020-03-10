@@ -211,10 +211,10 @@ class Tracklets(Base):
         tracklet_dictionary['AoM'] = Coord.position_angle(Coord2)
 
         # Find the healpix that the coordinates are in.
-        tracklet_dictionary['HP'] = self.HPix.lonlat_to_healpix(Coord.ra,
-                                                                Coord.dec)
-        tracklet_dictionary['HP2'] = self.HPix.lonlat_to_healpix(Coord2.ra,
-                                                                 Coord2.dec)
+        tracklet_dictionary['HP'] = int(self.HPix.lonlat_to_healpix(
+                                        Coord.ra, Coord.dec))
+        tracklet_dictionary['HP2'] = int(self.HPix.lonlat_to_healpix(
+                                         Coord2.ra, Coord2.dec))
 
         # Create a unique ID for the tracklet. This is done by combining
         # the 5 digit number or 6-7 character temporary designation,
@@ -303,12 +303,31 @@ def identify_tracklets(list_of_observations):
         list of list
         - each containing obs80 lines for obs of a single tracklet.
     '''
+    # Initiate a list with just the first obs of first tracklet to start with.
     list_of_lists = [[list_of_observations[0]]]
+    # Parse all the obs80 lines into a generator
+    parsed_all = parse80(list_of_observations)
+    # Parse 1st line to check whether following lines belong to same tracklet.
+    parsed0 = parsed_all.send(None)
+    JD0 = parsed0.jdutc
+    namestr0 = parsed0.num if parsed0.num != '' else parsed0.desig
+    # Now loop over the rest of the lines, checking whether they belong to
+    # the same tracklet as the previous one.
     for obs in list_of_observations[1:]:
-        if obs[:12] == list_of_lists[-1][-1][:12]:
+        parsed1 = parsed_all.send(None)
+        JD1 = parsed1.jdutc
+        namestr1 = parsed1.num if parsed1.num != '' else parsed1.desig
+        # If next line has same trksub and is within 24 hours, add to tracklet
+        if namestr1 == namestr0 and np.abs(JD1 - JD0 <= 1.0):
             list_of_lists[-1].append(obs)
         else:
             list_of_lists.append([obs])
+            # Update namestr0 so that next loop checks against current line
+            namestr0 = namestr1
+        # Update JD0 so that next loop checks against current line
+        # Updated outside if, so that tracklet can grow infinitely large,
+        # There just has to be no gaps larger than 24 hours.
+        JD0 = JD1
     return list_of_lists
 
 

@@ -198,7 +198,7 @@ def upsert_tracklets(conn, jd_list, hp_list, tracklet_name_list, tracklet_dict_l
 
     # construct "records" variable which is apparently ammenable to single insert statement ...
     # https://pythonexamples.org/python-sqlite3-insert-multiple-records-into-table/
-    records = [ (jd, hp, tracklet_name, sqlite3.Binary(pickle.dumps(tracklet_dict, pickle.HIGHEST_PROTOCOL))) \
+    records = [ (int(jd), int(hp), tracklet_name, sqlite3.Binary(pickle.dumps(tracklet_dict, pickle.HIGHEST_PROTOCOL))) \
                for jd, hp, tracklet_name, tracklet_dict \
                in zip(jd_list, hp_list, tracklet_name_list, tracklet_dict_list) ]
 
